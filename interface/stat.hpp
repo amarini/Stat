@@ -30,12 +30,15 @@ public:
 	// return the Pearson correlation coefficient
 	static float corrPearson(vector<float> &a, vector<float> &b);
 	static float corrSpearman(vector<float> &a ,vector<float> &b);
-	//return the linear regression coefficients (LSE) of the points
+	//return the linear regression coefficients (LSE) of the points a = x , b=y
 	static pair<float,float> regression(vector<float>&a,vector<float>&b);
 	//error 0 = <0,0> 1=<1,1> 2=<0,1>
 	//return the linear regression coefficient of the points LSE
-	//and the covariance matrix
+	//and the covariance matrix. e2 is the cov matrix
 	static pair<float,float> regression(vector<float>&a,vector<float>&b, vector<float>&e_b,vector<float> &e2);
+
+	// polynomial regression, with error on y (empty = 1)
+	static void regression(const vector<float>&a, const vector<float>&b,const int order , const vector<float> &e, vector<float> &coeff,map< pair<unsigned,unsigned>, float> &cov);
 
 
 	//return in r, the smallest interval to contain the fraction Q of the elements in vector	

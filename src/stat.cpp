@@ -151,6 +151,96 @@ pair<float,float> STAT::regression(vector<float>&a,vector<float>&b,vector<float>
 
 }
 
+#include "TMatrixD.h"
+#include "TVectorD.h"
+#include "TMath.h"
+
+void STAT::regression(	const vector<float> &a, 
+			const vector<float> &b,
+			const int order,
+			const vector<float> &e,
+			vector<float> &coeff,
+			map< pair<unsigned,unsigned> , float> &cov
+		)
+{
+	const size_t N = a.size();
+	if (b.size() != N ) 
+	{
+		cout <<"[STAT]::[regression] ERROR a and b has different size"<<endl;
+		return;
+	}
+
+	const bool doErrors = not e.empty();
+	if (doErrors and  e.size() != N)
+	{
+		cout <<"[STAT]::[regression] ERROR e has different size"<<endl;
+		return;
+	}
+
+	coeff.clear();
+	cov.clear();
+
+	TVectorD y,c;
+	TMatrixD X;
+
+	c.ResizeTo( order );
+	y.ResizeTo( N );
+	X.ResizeTo( N, order);
+
+	// fill Vectors and Matrix
+	for(size_t i=0;i< N ;++i) 
+	{
+		if(doErrors) y(i) = b[i] / (e[i]*e[i]);
+		else y(i) = b[i];
+	}
+
+	for(size_t j=0;j<order ;++j)
+	for(size_t i=0;i<N ;++i)
+	{
+		if (doErrors) {
+			if (j ==0) X(j,i) = 1;
+			else X(j,i) = TMath::Power(double(a[i]),int(j));
+		}
+		else {
+			if (j ==0) X(j,i) = 1./(e[i]*e[i]);
+			else X(j,i) = TMath::Power(double(a[i]),int(j))/(e[i]*e[i]);
+		}
+	}
+
+	TMatrixD Xt;
+	Xt.Transpose(X);
+	
+	TMatrixD B = Xt*X;
+	B.Invert();
+	B *= Xt;
+
+	c = B*y; 
+
+	// input covariance
+	TMatrixD S; S.ResizeTo(N,N);
+
+	for(size_t i=0;i<N ;++i)
+		S(i,i) = e[i]*e[i];
+	//output covariance
+	//ABAT
+	TMatrixD Bt;
+	Bt.Transpose(B);
+	TMatrixD covOut ;
+	covOut.ResizeTo(order,order);
+	covOut = B*S*Bt;
+
+	// Fill output
+	for(size_t i=0;i<order;++i)
+		coeff.push_back(c(i));
+
+	for(size_t i=0;i<order;++i)
+	for(size_t j=0;j<order;++j)
+		cov[ pair<unsigned,unsigned>(i,j) ] = covOut(i,j);
+
+	return ;
+}
+
+
 void STAT::drawFitError(TH1*h,pair<float,float> &R,vector<float> &e2,float sigma)
 {
 //|e f|^-1 = |a c|
@@ -319,7 +409,6 @@ void STAT::Fill(std::vector<float> &a, std::vector<float> &b, TH2*h)
 }
 
 
-#include "TMath.h"
 TH1F *STAT::GetDensity(std::vector<float> &v, float R )
 {
 	if( not is_sorted(v.begin(),v.end() )) sort(v.begin(), v.end() );
